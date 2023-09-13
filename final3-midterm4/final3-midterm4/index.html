@@ -1,5 +1,4 @@
 <!DOCTYPE html>
- 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -16,6 +15,14 @@
       integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ"
       crossorigin="anonymous"
     />
+
+          <!-- Include DataTables library -->
+          <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">
+          <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+      
+          <!-- Include Chart.js library -->
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
       .panel {
         min-height: 390px;
@@ -149,7 +156,7 @@
           <li>
             1. Implement TODO #1 in index.html
           </li>
-          <li>v
+          <li>
             2. Implement TODO #2 in index.html
           </li>
           <li>
@@ -162,122 +169,131 @@
       </div>
       <div></div>
     </div>
+
+    <select id="countrySelect"></select>
+    <table id="locations" class="display"></table>
+    <canvas id="regionsChart"></canvas>
+
   </body>
-
-  <script>
-    /*TODO #1
-     * Load content from IP2LOCATION.json file
-     * 10 points
-     */
-     const filePath = 'IP2LOCATION.json';
-
-fetch(filePath)
-.then(response => {
-  if (!response.ok) {
-    throw new Error(`Failed to fetch '${filePath}': ${response.status} ${response.statusText}`);
-  }
-  return response.json();
-})
-.then(data => {
-
-  console.log(data);
-})
-.catch(error => {
-  console.error(`An error occurred: ${error}`);
-});
-
-    /*TODO #2
-     * Create select dropdown and load unique countries from file within it
-     * -> unique means that one country appears only once
-     * You can use select2 library if you want
-     * 30 points
-     */
-     
-     function populateCountries() {
-        let uniqueCountries = [...new Set(ip2LocationData.map(item => item.Country))];
+      
+      <script>
+        let ip2LocationData;
         
-        uniqueCountries.forEach(country => {
-          $('#countrySelect').append(new Option(country, country));
+        // TODO #1: Load content from IP2LOCATION.json file
+        $.getJSON('IP2LOCATION.json', function(data) {
+          ip2LocationData = data;
+  
+          // Perform the other tasks once data is loaded
+          populateCountries();
         });
-      }
-
-
-
-    /*TODO #3
-     * Use jQuery Datatable library to create HTML table with id = locations
-     * This table will list only unique cities from the country selected in select dropdown:
-     * together with total number of occurrences of that city available in file
-     * -> unique means that one country appears only once
-     * 30 points
-     */
-     $('#countrySelect').change(function() {
-        const selectedCountry = $(this).val();
-        let citiesMap = {};
-
-        ip2LocationData.forEach(item => {
-          if (item.Country === selectedCountry) {
-            if (citiesMap[item.City]) citiesMap[item.City]++;
-            else citiesMap[item.City] = 1;
-          }
-        });
-
-        let tableData = [];
-        for (let [city, count] of Object.entries(citiesMap)) {
-          tableData.push({ city, count });
+  
+        // TODO #2: Populate countries in the dropdown
+        function populateCountries() {
+          let uniqueCountries = [...new Set(ip2LocationData.map(item => item.Country))];
+          
+          uniqueCountries.forEach(country => {
+            $('#countrySelect').append(new Option(country, country));
+          }); 
         }
-
-        $('#locations').DataTable({
-          destroy: true,
-          data: tableData,
-          columns: [
-            { title: "City", data: "city" },
-            { title: "Count", data: "count" }
-          ]
-        });
-
-        populateRegionsChart(selectedCountry);
-      });
-
-
-    /*TODO #4
-     * Create pie chart that shows distribution of regions for selected country
-     * Show number of occurrences for each region for selected country
-     * 30 points
-     */
-
-     function populateRegionsChart(selectedCountry) {
-        let regionsMap = {};
-
-        ip2LocationData.forEach(item => {
-          if (item.Country === selectedCountry) {
-            if (regionsMap[item.Region]) regionsMap[item.Region]++;
-            else regionsMap[item.Region] = 1;
+  
+        // TODO #3: Use jQuery Datatable
+        $('#countrySelect').change(function() {
+          const selectedCountry = $(this).val();
+          let citiesMap = {};
+  
+          ip2LocationData.forEach(item => {
+            if (item.Country === selectedCountry) {
+              if (citiesMap[item.City]) citiesMap[item.City]++;
+              else citiesMap[item.City] = 1;
+            }
+          });
+  
+          let tableData = [];
+          for (let [city, count] of Object.entries(citiesMap)) {
+            tableData.push({ city, count });
           }
+  
+          $('#locations').DataTable({
+            destroy: true,
+            data: tableData,
+            columns: [
+              { title: "City", data: "city" },
+              { title: "Count", data: "count" }
+            ]
+          });
+  
+          populateRegionsChart(selectedCountry);
         });
-
-        let labels = Object.keys(regionsMap);
-        let data = Object.values(regionsMap);
-
-        let ctx = document.getElementById('regionsChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: data,
-              backgroundColor: [
-                'rgba(255, 99, 132, 0.5)',
-                'rgba(54, 162, 235, 0.5)',
-
-                'rgba(255, 206, 86, 0.5)'
-                // Add more colors if you have many regions
-              ]
-            }]
-          }
-        });
+  
+        // TODO #4: Create pie chart
+        $.getJSON("IP2LOCATION.json", function (data) {
+  const countries = [];
+  for (let i = 0; i < data.length; i++) {
+    if (!countries.includes(data[i].Country)) {
+      countries.push(data[i].Country);
+    }
+  }
 
 
+  const regions = Array(countries.length).fill(0);
+
+
+  for (let i = 0; i < data.length; i++) {
+    let country = data[i].Country;
+    regions[countries.indexOf(country)] += 1;
+  }
+
+
+  const points = [];
+  for (let i = 0; i < countries.length; i++) {
+    let smth = { name: countries[i], y: regions[i] };
+    points.push(smth);
+  }
+
+
+  console.log(points);
+
+
+  // Create the Highcharts chart
+  Highcharts.chart('chart-container', {
+    chart: {
+      type: 'pie'
+    },
+    title: {
+
+
+      text: "regions for selected countries"
+    },
+    series: [{
+      name: 'regions',
+      data: points
+    }]
+  });
+});
   </script>
-</html>
+  
 
 
+
+  </div>
+  
+  
+  
+  
+    <div id="chart-container"></div>
+  
+  
+  
+  
+    <table id="locations" class="table">
+    <thead>
+      <tr>
+        <th>Country</th>
+        <th>City</th>
+        <th>Total City</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </html>
+  
